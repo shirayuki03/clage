@@ -8,15 +8,18 @@ Clage_clone_scripts = {}
 Clage_clone_sources = {}
 Clage_clones_by_source = {}
 Clage_state_dirty = True
+Clage_last_emit_at = 0.0
+Clage_emit_interval = 1 / 30
 
 
 def Clage_reset_state():
-    global Clage_state_dirty
+    global Clage_state_dirty, Clage_last_emit_at
     Clage_sprites.clear()
     Clage_clone_scripts.clear()
     Clage_clone_sources.clear()
     Clage_clones_by_source.clear()
     Clage_state_dirty = True
+    Clage_last_emit_at = 0.0
 
 
 def Clage_export_state():
@@ -57,11 +60,17 @@ def Clage_render_sprite_state():
 
 
 def Clage_emit_state(force=False):
-    global Clage_state_dirty
+    global Clage_state_dirty, Clage_last_emit_at
     if not force and not Clage_state_dirty:
         return
+
+    now = time.monotonic()
+    if not force and now - Clage_last_emit_at < Clage_emit_interval:
+        return
+
     emit_extension_event("Clage", "state", {"sprites": Clage_render_sprite_state()})
     Clage_state_dirty = False
+    Clage_last_emit_at = now
 
 
 def Clage_rebuild_clone_index():
