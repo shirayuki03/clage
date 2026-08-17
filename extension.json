@@ -1,0 +1,38 @@
+{
+  "name": "Clage",
+  "version": "0.1.0",
+  "description": "ClambonでCanvasゲームを作る拡張機能",
+  "grammar": "grammar.lark",
+  "python": "main.py",
+  "ui": {
+    "html": "ui.html",
+    "css": "ui.css",
+    "js": "ui.js",
+    "panels": [
+      {
+        "id": "game",
+        "type": "game",
+        "title": "ゲーム",
+        "defaultSlot": "game"
+      }
+    ],
+    "modes": [
+      {
+        "id": "code",
+        "label": "コード"
+      },
+      {
+        "id": "costume",
+        "label": "コスチューム",
+        "accept": "image/*",
+        "reference": "filename"
+      }
+    ],
+    "costumes": {
+      "reference": "filename",
+      "duplicates": "error"
+    }
+  },
+  "assets": [],
+  "capabilities": ["canvas", "keyboard", "sprites", "costumes"]
+}

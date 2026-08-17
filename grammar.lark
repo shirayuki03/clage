@@ -1,0 +1,46 @@
+clage: run_
+    | stage
+    | sprite
+    | start_
+    | move
+    | x_assignment
+    | y_assignment
+    | direction_assignment
+    | costume
+    | show
+    | hide
+    | clone_create
+    | clone_delete
+
+run_: "run" "(" ")"
+stage: "Stage" "(" ")" "{" event* "}"
+sprite: "Sprite" "(" CNAME ")" "{" event* "}"
+
+event: start_ | run_ | define | clone_start
+
+?sprite_ref: CNAME | clone_call
+
+move: sprite_ref ".move" "(" expr ")"
+x_assignment: sprite_ref ".x" "=" expr
+y_assignment: sprite_ref ".y" "=" expr
+direction_assignment: sprite_ref ".direction" "=" expr
+x_position: sprite_ref ".x"
+y_position: sprite_ref ".y"
+direction: sprite_ref ".direction"
+
+costume: sprite_ref ".costume" "=" string
+show: sprite_ref ".show" "(" ")"
+hide: sprite_ref ".hide" "(" ")"
+
+clone_start: "clone" "{" cmd* "}"
+clone_create: "clone" "(" sprite_ref ")"
+clone_delete: "clone" ".delete" "(" ")"
+clone_call: "clone"
+
+touching: sprite_ref ".touching" "(" sprite_ref ")"
+key_pressed: "pressed" "(" string ")"
+
+start_: "start" "{" cmd* "}"
+
+%extend atom: x_position | y_position | direction
+%extend bool_expr: touching | key_pressed

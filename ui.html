@@ -1,0 +1,22 @@
+<template data-extension-topbar>
+  <div class="clage-mode-switch" aria-label="編集モード">
+    <button class="active" type="button" data-clage-mode="code">コード</button>
+    <button type="button" data-clage-mode="costume">コスチューム</button>
+  </div>
+</template>
+
+<template data-extension-mode="costume">
+  <section class="clage-costume-panel" aria-label="コスチューム">
+    <div class="clage-costume-toolbar">
+      <button data-clage-add-costume type="button">画像を追加</button>
+      <input data-clage-costume-input type="file" accept="image/*" multiple hidden>
+    </div>
+    <div class="clage-costume-list" data-clage-costume-list></div>
+  </section>
+</template>
+
+<template data-extension-panel="game" data-panel-kicker="Game" data-panel-title="ゲーム" data-panel-label="ゲーム画面">
+  <div class="clage-stage">
+    <canvas width="720" height="540" aria-label="Clage game canvas"></canvas>
+  </div>
+</template>
