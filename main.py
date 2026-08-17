@@ -161,10 +161,13 @@ class Clage_main:
         clone_name = self.current_clone_name
         if clone_name is None:
             raise ClambonError("clone.delete() は clone ブロックの中だけで使えます。")
-        Clage_sprites.pop(clone_name, None)
-        Clage_clone_sources.pop(clone_name, None)
+        self.delete_clone(clone_name)
         Clage_emit_state()
         self.cancel_current_task()
+
+    def delete_clone(self, clone_name):
+        Clage_sprites.pop(clone_name, None)
+        Clage_clone_sources.pop(clone_name, None)
 
     def touching(self, tree):
         sprite_name = self.resolve_sprite(tree.children[0])
@@ -175,7 +178,7 @@ class Clage_main:
 
     def touching_edge(self, sprite_name):
         sprite = Clage_sprites.get(sprite_name)
-        if not sprite:
+        if not sprite or not sprite.get("visible", True):
             return False
         half_w = sprite.get("width", 44) / 2
         half_h = sprite.get("height", 44) / 2
@@ -190,6 +193,8 @@ class Clage_main:
         sprite = Clage_sprites.get(sprite_name)
         target = Clage_sprites.get(target_name)
         if not sprite or not target:
+            return False
+        if not sprite.get("visible", True) or not target.get("visible", True):
             return False
         return (
             abs(sprite["x"] - target["x"]) <= (sprite.get("width", 44) + target.get("width", 44)) / 2
