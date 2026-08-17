@@ -210,8 +210,10 @@ class Clage_main:
         clone_name = self.current_clone_name
         if clone_name is None:
             raise ClambonError("clone.delete() は clone ブロックの中だけで使えます。")
+    
         self.delete_clone(clone_name)
         Clage_mark_dirty()
+        Clage_emit_state(force=True)
         self.cancel_current_task()
 
     def delete_clone(self, clone_name):
