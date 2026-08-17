@@ -23,19 +23,32 @@ def Clage_reset_state():
 
 
 def Clage_export_state():
+    clone_names = set(Clage_clone_sources)
     return {
-        "sprites": copy.deepcopy(Clage_sprites),
-        "clone_sources": copy.deepcopy(Clage_clone_sources),
+        "sprites": {
+            name: copy.deepcopy(sprite)
+            for name, sprite in Clage_sprites.items()
+            if name not in clone_names
+        },
+        "clone_sources": {},
     }
 
 
 def Clage_import_state(state):
     global Clage_state_dirty
+    restored_state = state or {}
+    restored_sprites = copy.deepcopy(restored_state.get("sprites", {}))
+    restored_clone_sources = restored_state.get("clone_sources", {})
+
+    # Remove clones saved by older versions. Clone scripts are runtime tasks,
+    # so restoring only their sprite data would leave non-running clones behind.
+    for clone_name in restored_clone_sources:
+        restored_sprites.pop(clone_name, None)
+
     Clage_sprites.clear()
-    Clage_sprites.update(copy.deepcopy((state or {}).get("sprites", {})))
+    Clage_sprites.update(restored_sprites)
     Clage_clone_sources.clear()
-    Clage_clone_sources.update(copy.deepcopy((state or {}).get("clone_sources", {})))
-    Clage_rebuild_clone_index()
+    Clage_clones_by_source.clear()
     Clage_state_dirty = True
 
 
@@ -210,7 +223,7 @@ class Clage_main:
         clone_name = self.current_clone_name
         if clone_name is None:
             raise ClambonError("clone.delete() は clone ブロックの中だけで使えます。")
-    
+
         self.delete_clone(clone_name)
         Clage_mark_dirty()
         Clage_emit_state(force=True)
