@@ -6,12 +6,17 @@ import time
 Clage_sprites = {}
 Clage_clone_scripts = {}
 Clage_clone_sources = {}
+Clage_clones_by_source = {}
+Clage_state_dirty = True
 
 
 def Clage_reset_state():
+    global Clage_state_dirty
     Clage_sprites.clear()
     Clage_clone_scripts.clear()
     Clage_clone_sources.clear()
+    Clage_clones_by_source.clear()
+    Clage_state_dirty = True
 
 
 def Clage_export_state():
@@ -22,14 +27,48 @@ def Clage_export_state():
 
 
 def Clage_import_state(state):
+    global Clage_state_dirty
     Clage_sprites.clear()
     Clage_sprites.update(copy.deepcopy((state or {}).get("sprites", {})))
     Clage_clone_sources.clear()
     Clage_clone_sources.update(copy.deepcopy((state or {}).get("clone_sources", {})))
+    Clage_rebuild_clone_index()
+    Clage_state_dirty = True
 
 
-def Clage_emit_state():
-    emit_extension_event("Clage", "state", {"sprites": copy.deepcopy(Clage_sprites)})
+def Clage_mark_dirty():
+    global Clage_state_dirty
+    Clage_state_dirty = True
+
+
+def Clage_render_sprite_state():
+    return {
+        name: {
+            "x": sprite.get("x", 0),
+            "y": sprite.get("y", 0),
+            "direction": sprite.get("direction", 90),
+            "costume": sprite.get("costume", ""),
+            "visible": sprite.get("visible", True),
+            "width": sprite.get("width", 44),
+            "height": sprite.get("height", 44),
+        }
+        for name, sprite in Clage_sprites.items()
+    }
+
+
+def Clage_emit_state(force=False):
+    global Clage_state_dirty
+    if not force and not Clage_state_dirty:
+        return
+    emit_extension_event("Clage", "state", {"sprites": Clage_render_sprite_state()})
+    Clage_state_dirty = False
+
+
+def Clage_rebuild_clone_index():
+    Clage_clones_by_source.clear()
+    for clone_name, source_name in Clage_clone_sources.items():
+        if clone_name in Clage_sprites:
+            Clage_clones_by_source.setdefault(source_name, set()).add(clone_name)
 
 
 def Clage_sprite_template(source=None):
@@ -56,7 +95,7 @@ class Clage_main:
     def stage(self, tree):
         for cmd in tree.children:
             self.visit_command(cmd)
-        Clage_emit_state()
+        Clage_mark_dirty()
 
     def sprite(self, tree):
         sprite_name = str(tree.children[0])
@@ -68,7 +107,7 @@ class Clage_main:
                 self.visit_command(cmd)
         finally:
             self.current_sprite_definition = previous_sprite
-        Clage_emit_state()
+        Clage_mark_dirty()
 
     def resolve_sprite(self, node):
         if hasattr(node, "data"):
@@ -90,23 +129,23 @@ class Clage_main:
         radians = math.radians(sprite["direction"])
         sprite["x"] += distance * math.cos(radians)
         sprite["y"] += distance * math.sin(radians)
-        Clage_emit_state()
+        Clage_mark_dirty()
 
     def x_assignment(self, tree):
         sprite_name = self.resolve_sprite(tree.children[0])
         Clage_sprites[sprite_name]["x"] = self._resolve(self.visit(tree.children[1]))
-        Clage_emit_state()
+        Clage_mark_dirty()
 
     def y_assignment(self, tree):
         sprite_name = self.resolve_sprite(tree.children[0])
         Clage_sprites[sprite_name]["y"] = self._resolve(self.visit(tree.children[1]))
-        Clage_emit_state()
+        Clage_mark_dirty()
 
     def direction_assignment(self, tree):
         sprite_name = self.resolve_sprite(tree.children[0])
         direction = self._resolve(self.visit(tree.children[1]))
         Clage_sprites[sprite_name]["direction"] = ((direction + 180) % 360) - 180
-        Clage_emit_state()
+        Clage_mark_dirty()
 
     def x_position(self, tree):
         return Clage_sprites[self.resolve_sprite(tree.children[0])]["x"]
@@ -120,15 +159,15 @@ class Clage_main:
     def costume(self, tree):
         sprite_name = self.resolve_sprite(tree.children[0])
         Clage_sprites[sprite_name]["costume"] = self._resolve(self.visit(tree.children[1]))
-        Clage_emit_state()
+        Clage_mark_dirty()
 
     def show(self, tree):
         Clage_sprites[self.resolve_sprite(tree.children[0])]["visible"] = True
-        Clage_emit_state()
+        Clage_mark_dirty()
 
     def hide(self, tree):
         Clage_sprites[self.resolve_sprite(tree.children[0])]["visible"] = False
-        Clage_emit_state()
+        Clage_mark_dirty()
 
     def clone_start(self, tree):
         if self.current_sprite_definition is None:
@@ -151,10 +190,11 @@ class Clage_main:
         Clage_sprites[clone_name] = Clage_sprite_template(sprite_name)
         source_name = Clage_clone_sources.get(sprite_name, sprite_name)
         Clage_clone_sources[clone_name] = source_name
+        Clage_clones_by_source.setdefault(source_name, set()).add(clone_name)
         commands = Clage_clone_scripts.get(source_name)
         if commands is not None:
             self.register_runtime_script(commands, context={"clone_name": clone_name})
-        Clage_emit_state()
+        Clage_mark_dirty()
         return clone_name
 
     def clone_delete(self, tree):
@@ -162,12 +202,16 @@ class Clage_main:
         if clone_name is None:
             raise ClambonError("clone.delete() は clone ブロックの中だけで使えます。")
         self.delete_clone(clone_name)
-        Clage_emit_state()
+        Clage_mark_dirty()
         self.cancel_current_task()
 
     def delete_clone(self, clone_name):
+        source_name = Clage_clone_sources.pop(clone_name, None)
         Clage_sprites.pop(clone_name, None)
-        Clage_clone_sources.pop(clone_name, None)
+        if source_name in Clage_clones_by_source:
+            Clage_clones_by_source[source_name].discard(clone_name)
+            if not Clage_clones_by_source[source_name]:
+                Clage_clones_by_source.pop(source_name, None)
 
     def resolve_sprite_group(self, sprite_name):
         group = []
@@ -175,8 +219,8 @@ class Clage_main:
             group.append(sprite_name)
         group.extend(
             clone_name
-            for clone_name, source_name in Clage_clone_sources.items()
-            if source_name == sprite_name and clone_name in Clage_sprites
+            for clone_name in Clage_clones_by_source.get(sprite_name, ())
+            if clone_name in Clage_sprites
         )
         return group
 
@@ -231,7 +275,7 @@ class Clage_main:
         self.register_start_script(tree.children)
 
     def run_(self, tree):
-        Clage_emit_state()
+        Clage_emit_state(force=True)
 
     def on_scheduler_tick(self):
         Clage_emit_state()
