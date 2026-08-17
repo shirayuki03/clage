@@ -7,6 +7,7 @@ const costumeList = root.querySelector("[data-clage-costume-list]");
 const images = new Map();
 let latestSprites = {};
 let costumes = api.getCostumes();
+let renderPending = false;
 
 canvas.tabIndex = 0;
 canvas.addEventListener("pointerdown", () => canvas.focus({ preventScroll: true }));
@@ -107,6 +108,15 @@ function render() {
   Object.entries(latestSprites).forEach(([name, sprite]) => drawSprite(name, sprite));
 }
 
+function scheduleRender() {
+  if (renderPending) return;
+  renderPending = true;
+  requestAnimationFrame(() => {
+    renderPending = false;
+    render();
+  });
+}
+
 modeButtons.forEach((button) => {
   button.addEventListener("click", () => api.setEditMode(button.dataset.clageMode));
 });
@@ -135,7 +145,7 @@ api.onEvent((eventType, payload) => {
   }
   if (eventType !== "state") return;
   latestSprites = payload.sprites || {};
-  render();
+  scheduleRender();
 });
 
 setModeButtonState("code");
