@@ -8,6 +8,9 @@ const images = new Map();
 let latestSprites = {};
 let costumes = api.getCostumes();
 
+canvas.tabIndex = 0;
+canvas.addEventListener("pointerdown", () => canvas.focus({ preventScroll: true }));
+
 function setModeButtonState(mode) {
   modeButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.clageMode === mode);
