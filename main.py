@@ -169,12 +169,23 @@ class Clage_main:
         Clage_sprites.pop(clone_name, None)
         Clage_clone_sources.pop(clone_name, None)
 
+    def resolve_sprite_group(self, sprite_name):
+        group = []
+        if sprite_name in Clage_sprites:
+            group.append(sprite_name)
+        group.extend(
+            clone_name
+            for clone_name, source_name in Clage_clone_sources.items()
+            if source_name == sprite_name and clone_name in Clage_sprites
+        )
+        return group
+
     def touching(self, tree):
         sprite_name = self.resolve_sprite(tree.children[0])
         target_name = self.resolve_sprite(tree.children[1])
         if target_name == "edge":
-            return self.touching_edge(sprite_name)
-        return self.touching_sprite(sprite_name, target_name)
+            return any(self.touching_edge(name) for name in self.resolve_sprite_group(sprite_name))
+        return self.touching_group(sprite_name, target_name)
 
     def touching_edge(self, sprite_name):
         sprite = Clage_sprites.get(sprite_name)
@@ -199,6 +210,16 @@ class Clage_main:
         return (
             abs(sprite["x"] - target["x"]) <= (sprite.get("width", 44) + target.get("width", 44)) / 2
             and abs(sprite["y"] - target["y"]) <= (sprite.get("height", 44) + target.get("height", 44)) / 2
+        )
+
+    def touching_group(self, sprite_name, target_name):
+        sprite_names = self.resolve_sprite_group(sprite_name)
+        target_names = self.resolve_sprite_group(target_name)
+        return any(
+            source_name != candidate_name
+            and self.touching_sprite(source_name, candidate_name)
+            for source_name in sprite_names
+            for candidate_name in target_names
         )
 
     def key_pressed(self, tree):
