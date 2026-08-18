@@ -6,7 +6,7 @@ Clage is a Clambon Web extension for making Canvas games.
 
 Manifest URL:
 
-https://raw.githubusercontent.com/<your-name>/clage/main/extension.json
+https://raw.githubusercontent.com/shirayuki03/clage/main/extension.json
 
 ## Example
 
