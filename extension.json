@@ -4,6 +4,22 @@
   "description": "ClambonでCanvasゲームを作る拡張機能",
   "grammar": "grammar.lark",
   "python": "main.py",
+  "syntaxHighlighting": {
+    "keywords": {
+      "motion": ["move", "x", "y", "direction"],
+      "looks": ["Stage", "Sprite", "costume", "show", "hide"],
+      "events": ["run", "start"],
+      "control": ["clone"],
+      "sensing": ["touching", "pressed"]
+    },
+    "contexts": [
+      {
+        "keyword": "delete",
+        "prefix": "clone.",
+        "category": "control"
+      }
+    ]
+  },
   "ui": {
     "html": "ui.html",
     "css": "ui.css",
